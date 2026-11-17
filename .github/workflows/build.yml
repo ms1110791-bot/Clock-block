@@ -12,8 +12,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.5'
-      - run: gradle assembleDebug --no-daemon
+      - name: Unzip project
+        run: |
+          Z=$(find . -iname '*.zip' -not -path './.git/*' | head -n1)
+          if [ -z "$Z" ]; then echo "zip nahi mila"; ls -R; exit 1; fi
+          mkdir -p /tmp/proj
+          unzip -q "$Z" -d /tmp/proj
+          F=$(find /tmp/proj -name settings.gradle | head -n1)
+          if [ -z "$F" ]; then echo "settings.gradle zip me nahi hai"; exit 1; fi
+          echo "PROJ=$(dirname "$F")" >> $GITHUB_ENV
+      - run: gradle assembleDebug --no-daemon -p "$PROJ"
       - uses: actions/upload-artifact@v4
         with:
           name: Clock-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJ }}/app/build/outputs/apk/debug/app-debug.apk
